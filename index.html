@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tools</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for better look and feel */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Light gray background */
+        }
+        .tab-button {
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .tab-button.active {
+            background-color: #3b82f6; /* Blue-500 */
+            color: white;
+            border-bottom-width: 2px;
+            border-bottom-color: #1d4ed8; /* Blue-700 */
+        }
+        .tab-button:not(.active):hover {
+            background-color: #e5e7eb; /* Gray-200 */
+        }
+        .content-box {
+            background-color: white;
+            border-radius: 0.5rem; /* 8px */
+            padding: 1.5rem; /* 24px */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .link-item a:hover {
+            color: #2563eb; /* Blue-600 */
+            text-decoration: underline;
+        }
+        /* Loading spinner */
+        .loader {
+            border: 4px solid #f3f3f3; /* Light grey */
+            border-top: 4px solid #3498db; /* Blue */
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Custom message box for alerts */
+        .message-box-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .message-box-overlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        .message-box-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 90%;
+            width: 400px;
+        }
+        .message-box-button {
+            margin-top: 1rem;
+            padding: 0.5rem 1rem;
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 0.25rem;
+            cursor: pointer;
+        }
+        .message-box-button:hover {
+            background-color: #2563eb;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4 md:p-8">
+
+    <div class="max-w-4xl mx-auto">
+        <header class="mb-6">
+            <h1 class="text-3xl md:text-4xl font-bold text-center text-gray-800">Dassey's Tools</h1>
+        </header>
+
+        <div class="mb-6">
+            <div class="flex border-b border-gray-300">
+                <button id="tab-links-btn" class="tab-button active text-sm md:text-base font-medium py-3 px-4 md:px-6 rounded-t-lg focus:outline-none" onclick="showTab('links')">
+                    My Links
+                </button>
+                <button id="tab-extractor-btn" class="tab-button text-sm md:text-base font-medium py-3 px-4 md:px-6 rounded-t-lg focus:outline-none" onclick="showTab('extractor')">
+                    HTML Extractor
+                </button>
+                </div>
+        </div>
+
+        <div>
+            <div id="tab-links" class="tab-content content-box">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">My Other Sites</h2>
+                <ul class="space-y-3">
+                    <li class="link-item">
+                        <a href="https://dassey.github.io" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:text-blue-700 transition-colors">
+                            dassey.github.io
+                        </a>
+                    </li>
+                    <li class="link-item">
+                        <a href="https://dassey.github.io/TRF/" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:text-blue-700 transition-colors">
+                            dassey.github.io/TRF/
+                        </a>
+                    </li>
+                    <li class="link-item">
+                        <a href="https://dassey.github.io/png/" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:text-blue-700 transition-colors">
+                            dassey.github.io/png/
+                        </a>
+                    </li>
+                    <li class="link-item">
+                        <a href="https://dassey.github.io/stl/" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:text-blue-700 transition-colors">
+                            dassey.github.io/stl/
+                        </a>
+                    </li>
+                    <li class="link-item">
+                        <a href="https://dassey.github.io/HBG/" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:text-blue-700 transition-colors">
+                            dassey.github.io/HBG/
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div id="tab-extractor" class="tab-content content-box hidden">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">HTML Source Extractor</h2>
+                <p class="text-sm text-gray-600 mb-3">
+                    Enter a URL to fetch its HTML source code.
+                </p>
+                <p class="text-xs text-yellow-600 bg-yellow-50 p-2 rounded-md mb-4">
+                    <strong>Note:</strong> Due to browser security restrictions (CORS), this tool may not be able to fetch HTML from all websites. It works best with servers that have permissive CORS headers or for resources on the same domain. For broader compatibility, a server-side proxy would be required.
+                </p>
+                <div class="space-y-4">
+                    <div>
+                        <label for="urlInput" class="block text-sm font-medium text-gray-700 mb-1">Website URL:</label>
+                        <input type="url" id="urlInput" placeholder="https://example.com" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <button id="fetchHtmlBtn" class="w-full md:w-auto bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                        Fetch HTML
+                    </button>
+                    <div>
+                        <label for="htmlOutput" class="block text-sm font-medium text-gray-700 mb-1">HTML Source Code:</label>
+                        <div id="outputContainer" class="relative">
+                             <textarea id="htmlOutput" readonly class="w-full h-64 p-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 resize-none" placeholder="HTML source will appear here..."></textarea>
+                             <div id="loader" class="loader absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 hidden"></div>
+                        </div>
+
+                    </div>
+                    <button id="copyHtmlBtn" class="w-full md:w-auto bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50" disabled>
+                        Copy HTML
+                    </button>
+                </div>
+            </div>
+            </div>
+    </div>
+
+    <div id="customMessageBox" class="message-box-overlay">
+        <div class="message-box-content">
+            <p id="messageBoxText"></p>
+            <button id="messageBoxOkButton" class="message-box-button">OK</button>
+        </div>
+    </div>
+
+    <script>
+        // --- Tab Management ---
+        const tabs = ['links', 'extractor']; // Add other tab IDs here
+        const tabButtons = {
+            'links': document.getElementById('tab-links-btn'),
+            'extractor': document.getElementById('tab-extractor-btn')
+            // Add other tab button IDs here
+        };
+        const tabContents = {
+            'links': document.getElementById('tab-links'),
+            'extractor': document.getElementById('tab-extractor')
+            // Add other tab content IDs here
+        };
+
+        function showTab(tabId) {
+            tabs.forEach(id => {
+                const button = tabButtons[id];
+                const content = tabContents[id];
+                if (id === tabId) {
+                    button.classList.add('active');
+                    content.classList.remove('hidden');
+                } else {
+                    button.classList.remove('active');
+                    content.classList.add('hidden');
+                }
+            });
+        }
+
+        // Initialize with the first tab active
+        showTab('links');
+
+        // --- HTML Extractor Logic ---
+        const urlInput = document.getElementById('urlInput');
+        const fetchHtmlBtn = document.getElementById('fetchHtmlBtn');
+        const htmlOutput = document.getElementById('htmlOutput');
+        const copyHtmlBtn = document.getElementById('copyHtmlBtn');
+        const loader = document.getElementById('loader');
+
+        // Custom alert function
+        const customMessageBox = document.getElementById('customMessageBox');
+        const messageBoxText = document.getElementById('messageBoxText');
+        const messageBoxOkButton = document.getElementById('messageBoxOkButton');
+
+        function showCustomAlert(message) {
+            messageBoxText.textContent = message;
+            customMessageBox.classList.add('visible');
+        }
+
+        messageBoxOkButton.addEventListener('click', () => {
+            customMessageBox.classList.remove('visible');
+        });
+
+
+        fetchHtmlBtn.addEventListener('click', async () => {
+            const url = urlInput.value.trim();
+            if (!url) {
+                showCustomAlert('Please enter a URL.');
+                return;
+            }
+
+            // Basic URL validation (can be improved)
+            try {
+                new URL(url);
+            } catch (_) {
+                showCustomAlert('Invalid URL format. Please include http:// or https://');
+                return;
+            }
+
+            htmlOutput.value = ''; // Clear previous output
+            copyHtmlBtn.disabled = true;
+            copyHtmlBtn.textContent = 'Copy HTML';
+            loader.classList.remove('hidden'); // Show loader
+            fetchHtmlBtn.disabled = true;
+
+
+            try {
+                // IMPORTANT: This fetch request is subject to CORS policy.
+                // It might not work for all websites from a client-side script.
+                // A proxy server would be needed for universal fetching.
+                const response = await fetch(url, { mode: 'cors' }); // Try with CORS mode
+
+                if (!response.ok) {
+                    // Try fetching via a proxy if direct fetch fails (example proxy, may not always work or be available)
+                    // This is a common workaround for CORS, but reliable proxy usage is complex.
+                    // For a robust solution, you'd typically run your own proxy.
+                    // This is a simple example using a public proxy which might have limitations.
+                    // const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+                    // For this example, we will just show the error from the direct fetch.
+                    // In a real application, you might implement a more robust proxy strategy.
+
+                    // If you want to try with a proxy, uncomment the lines below and comment out the direct error.
+                    // console.warn(`Direct fetch failed for ${url} with status ${response.status}. Trying with a proxy...`);
+                    // const proxyResponse = await fetch(proxyUrl);
+                    // if (!proxyResponse.ok) {
+                    //     throw new Error(`Proxy fetch failed for ${url} with status ${proxyResponse.status}`);
+                    // }
+                    // const html = await proxyResponse.text();
+                    // htmlOutput.value = html;
+
+                    throw new Error(`Failed to fetch HTML. Status: ${response.status} ${response.statusText}. This might be due to CORS policy.`);
+                }
+
+                const html = await response.text();
+                htmlOutput.value = html;
+                if (html) {
+                    copyHtmlBtn.disabled = false;
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                htmlOutput.value = `Error fetching HTML: ${error.message}\n\nThis could be due to network issues or CORS restrictions. If it's a CORS issue, the website's server doesn't allow direct fetching from other domains (like this tool).`;
+                copyHtmlBtn.disabled = true;
+            } finally {
+                loader.classList.add('hidden'); // Hide loader
+                fetchHtmlBtn.disabled = false;
+            }
+        });
+
+        copyHtmlBtn.addEventListener('click', () => {
+            if (!htmlOutput.value) {
+                showCustomAlert('Nothing to copy.');
+                return;
+            }
+            // Create a temporary textarea to copy from
+            const tempTextArea = document.createElement('textarea');
+            tempTextArea.value = htmlOutput.value;
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
+            tempTextArea.setSelectionRange(0, 99999); // For mobile devices
+
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    copyHtmlBtn.textContent = 'Copied!';
+                    setTimeout(() => {
+                        copyHtmlBtn.textContent = 'Copy HTML';
+                    }, 2000);
+                } else {
+                   showCustomAlert('Failed to copy HTML. Your browser might not support this feature or there was an unexpected error.');
+                }
+            } catch (err) {
+                console.error('Copy error:', err);
+                showCustomAlert('Failed to copy HTML. Please try copying manually.');
+            }
+            document.body.removeChild(tempTextArea);
+        });
+
+        // Add placeholder if Inter font is not available
+        if (typeof document.fonts !== 'undefined') {
+            document.fonts.load('1em Inter').catch(() => {
+                console.warn("Inter font not available, using system default.");
+            });
+        } else {
+             console.warn("`document.fonts` API not supported, cannot check for Inter font. Using system default if Inter is not pre-installed.");
+        }
+
+    </script>
+</body>
+</html>
