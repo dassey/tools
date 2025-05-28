@@ -41,7 +41,7 @@
             width: 24px;
             height: 24px;
             animation: spin 1s linear infinite;
-            margin: 0 auto;
+            margin: 0 auto; /* Center the loader if it's a block element */
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
@@ -146,7 +146,7 @@
                     Enter a URL to fetch its HTML source code.
                 </p>
                 <p class="text-xs text-yellow-600 bg-yellow-50 p-2 rounded-md mb-4">
-                    <strong>Note:</strong> Due to browser security restrictions (CORS), this tool may not be able to fetch HTML from all websites. It works best with servers that have permissive CORS headers or for resources on the same domain. For broader compatibility, a server-side proxy would be required.
+                    <strong>Note:</strong> Due to browser security restrictions (CORS), this tool may not be able to fetch HTML from all websites directly. If a direct fetch fails, it will attempt to use a public proxy (allorigins.win, using its /raw endpoint). Proxies can also have limitations (e.g., rate limits, downtime, or may not work for all sites).
                 </p>
                 <div class="space-y-4">
                     <div>
@@ -160,8 +160,7 @@
                         <label for="htmlOutput" class="block text-sm font-medium text-gray-700 mb-1">HTML Source Code:</label>
                         <div id="outputContainer" class="relative">
                              <textarea id="htmlOutput" readonly class="w-full h-64 p-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 resize-none" placeholder="HTML source will appear here..."></textarea>
-                             <div id="loader" class="loader absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 hidden"></div>
-                        </div>
+                             <div id="loader" class="loader absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 hidden" style="margin: -12px 0 0 -12px;"></div> </div>
 
                     </div>
                     <button id="copyHtmlBtn" class="w-full md:w-auto bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50" disabled>
@@ -181,16 +180,14 @@
 
     <script>
         // --- Tab Management ---
-        const tabs = ['links', 'extractor']; // Add other tab IDs here
+        const tabs = ['links', 'extractor'];
         const tabButtons = {
             'links': document.getElementById('tab-links-btn'),
             'extractor': document.getElementById('tab-extractor-btn')
-            // Add other tab button IDs here
         };
         const tabContents = {
             'links': document.getElementById('tab-links'),
             'extractor': document.getElementById('tab-extractor')
-            // Add other tab content IDs here
         };
 
         function showTab(tabId) {
@@ -205,10 +202,24 @@
                     content.classList.add('hidden');
                 }
             });
+            // Store the active tab in localStorage
+            if (typeof localStorage !== 'undefined') {
+                localStorage.setItem('activeToolTab', tabId);
+            }
+        }
+        
+        // On page load, check if there's a stored active tab
+        if (typeof localStorage !== 'undefined') {
+            const storedTab = localStorage.getItem('activeToolTab');
+            if (storedTab && tabs.includes(storedTab)) {
+                showTab(storedTab);
+            } else {
+                showTab('links'); // Default to 'links' tab
+            }
+        } else {
+            showTab('links'); // Default if localStorage is not available
         }
 
-        // Initialize with the first tab active
-        showTab('links');
 
         // --- HTML Extractor Logic ---
         const urlInput = document.getElementById('urlInput');
@@ -239,61 +250,76 @@
                 return;
             }
 
-            // Basic URL validation (can be improved)
             try {
-                new URL(url);
+                new URL(url); // Basic URL validation
             } catch (_) {
                 showCustomAlert('Invalid URL format. Please include http:// or https://');
                 return;
             }
 
-            htmlOutput.value = ''; // Clear previous output
+            htmlOutput.value = '';
             copyHtmlBtn.disabled = true;
             copyHtmlBtn.textContent = 'Copy HTML';
-            loader.classList.remove('hidden'); // Show loader
+            loader.classList.remove('hidden');
             fetchHtmlBtn.disabled = true;
 
+            let fetchedHtmlContent = '';
+            let fetchSuccessful = false;
+            let specificErrorMessage = '';
+            let directFetchStatusInfo = '';
 
             try {
-                // IMPORTANT: This fetch request is subject to CORS policy.
-                // It might not work for all websites from a client-side script.
-                // A proxy server would be needed for universal fetching.
-                const response = await fetch(url, { mode: 'cors' }); // Try with CORS mode
+                // Attempt 1: Direct fetch
+                console.log(`Attempting direct fetch for: ${url}`);
+                const directResponse = await fetch(url, { mode: 'cors' });
+                directFetchStatusInfo = `Status: ${directResponse.status} (${directResponse.statusText || 'No status text'})`;
 
-                if (!response.ok) {
-                    // Try fetching via a proxy if direct fetch fails (example proxy, may not always work or be available)
-                    // This is a common workaround for CORS, but reliable proxy usage is complex.
-                    // For a robust solution, you'd typically run your own proxy.
-                    // This is a simple example using a public proxy which might have limitations.
-                    // const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-                    // For this example, we will just show the error from the direct fetch.
-                    // In a real application, you might implement a more robust proxy strategy.
 
-                    // If you want to try with a proxy, uncomment the lines below and comment out the direct error.
-                    console.warn(`Direct fetch failed for ${url} with status ${response.status}. Trying with a proxy...`);
+                if (directResponse.ok) {
+                    fetchedHtmlContent = await directResponse.text();
+                    fetchSuccessful = true;
+                    console.log('Direct fetch successful.');
+                } else {
+                    console.warn(`Direct fetch failed for ${url}. ${directFetchStatusInfo}. Attempting proxy.`);
+                    
+                    // Attempt 2: Proxy fetch using /raw endpoint
+                    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+                    console.log(`Attempting proxy fetch via (raw): ${proxyUrl}`);
+                    
                     const proxyResponse = await fetch(proxyUrl);
-                    if (!proxyResponse.ok) {
-                        throw new Error(`Proxy fetch failed for ${url} with status ${proxyResponse.status}`);
+
+                    if (proxyResponse.ok) {
+                        fetchedHtmlContent = await proxyResponse.text();
+                        fetchSuccessful = true;
+                        console.log('Proxy fetch (raw) successful.');
+                    } else {
+                        console.error(`Proxy fetch (raw) failed for ${url} with status ${proxyResponse.status} (${proxyResponse.statusText || 'No status text'}).`);
+                        specificErrorMessage = `Direct fetch failed (${directFetchStatusInfo}).\nProxy fetch (raw) also failed (Status: ${proxyResponse.status} - ${proxyResponse.statusText || 'N/A'}).\n\nThis could be due to CORS, network issues, or the target server blocking requests. The proxy itself might also be down, rate-limiting, or unable to fetch this specific URL.`;
                     }
-                    const html = await proxyResponse.text();
-                    htmlOutput.value = html;
-
-                    // throw new Error(`Failed to fetch HTML. Status: ${response.status} ${response.statusText}. This might be due to CORS policy.`);
-                }
-
-                const html = await response.text();
-                htmlOutput.value = html;
-                if (html) {
-                    copyHtmlBtn.disabled = false;
                 }
             } catch (error) {
-                console.error('Fetch error:', error);
-                htmlOutput.value = `Error fetching HTML: ${error.message}\n\nThis could be due to network issues or CORS restrictions. If it's a CORS issue, the website's server doesn't allow direct fetching from other domains (like this tool).`;
-                copyHtmlBtn.disabled = true;
-            } finally {
-                loader.classList.add('hidden'); // Hide loader
-                fetchHtmlBtn.disabled = false;
+                console.error('An error occurred during fetch attempts:', error);
+                // Check if it's a TypeError and includes 'Failed to fetch', which is common for CORS/network errors
+                if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+                     specificErrorMessage = `Error fetching HTML: Load failed.\nThis often indicates a network problem (e.g., the URL is unreachable, your connection is down) or a Cross-Origin Resource Sharing (CORS) issue that prevents fetching from the script's origin, even with a proxy attempt.`;
+                     if(directFetchStatusInfo) { // If direct fetch was attempted and failed before this catch
+                        specificErrorMessage += `\n(Direct fetch attempt resulted in: ${directFetchStatusInfo})`;
+                     }
+                } else {
+                     specificErrorMessage = `Error fetching HTML: ${error.message}\n\nAn unexpected error occurred.`;
+                }
             }
+
+            if (fetchSuccessful && fetchedHtmlContent) {
+                htmlOutput.value = fetchedHtmlContent;
+                copyHtmlBtn.disabled = false;
+            } else {
+                htmlOutput.value = specificErrorMessage || 'Failed to fetch HTML after direct and proxy attempts. An unknown error occurred.';
+                copyHtmlBtn.disabled = true;
+            }
+
+            loader.classList.add('hidden');
+            fetchHtmlBtn.disabled = false;
         });
 
         copyHtmlBtn.addEventListener('click', () => {
@@ -301,9 +327,10 @@
                 showCustomAlert('Nothing to copy.');
                 return;
             }
-            // Create a temporary textarea to copy from
             const tempTextArea = document.createElement('textarea');
             tempTextArea.value = htmlOutput.value;
+            tempTextArea.style.position = 'absolute'; // Prevent scrolling to bottom of page
+            tempTextArea.style.left = '-9999px';
             document.body.appendChild(tempTextArea);
             tempTextArea.select();
             tempTextArea.setSelectionRange(0, 99999); // For mobile devices
@@ -326,12 +353,12 @@
         });
 
         // Add placeholder if Inter font is not available
-        if (typeof document.fonts !== 'undefined') {
+        if (typeof document.fonts !== 'undefined' && typeof document.fonts.load === 'function') {
             document.fonts.load('1em Inter').catch(() => {
-                console.warn("Inter font not available, using system default.");
+                console.warn("Inter font not available or failed to load, using system default.");
             });
         } else {
-             console.warn("`document.fonts` API not supported, cannot check for Inter font. Using system default if Inter is not pre-installed.");
+             console.warn("`document.fonts.load` API not supported or Inter font check skipped. Using system default if Inter is not pre-installed.");
         }
 
     </script>
