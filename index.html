@@ -270,15 +270,15 @@
                     // In a real application, you might implement a more robust proxy strategy.
 
                     // If you want to try with a proxy, uncomment the lines below and comment out the direct error.
-                    // console.warn(`Direct fetch failed for ${url} with status ${response.status}. Trying with a proxy...`);
-                    // const proxyResponse = await fetch(proxyUrl);
-                    // if (!proxyResponse.ok) {
-                    //     throw new Error(`Proxy fetch failed for ${url} with status ${proxyResponse.status}`);
-                    // }
-                    // const html = await proxyResponse.text();
-                    // htmlOutput.value = html;
+                    console.warn(`Direct fetch failed for ${url} with status ${response.status}. Trying with a proxy...`);
+                    const proxyResponse = await fetch(proxyUrl);
+                    if (!proxyResponse.ok) {
+                        throw new Error(`Proxy fetch failed for ${url} with status ${proxyResponse.status}`);
+                    }
+                    const html = await proxyResponse.text();
+                    htmlOutput.value = html;
 
-                    throw new Error(`Failed to fetch HTML. Status: ${response.status} ${response.statusText}. This might be due to CORS policy.`);
+                    // throw new Error(`Failed to fetch HTML. Status: ${response.status} ${response.statusText}. This might be due to CORS policy.`);
                 }
 
                 const html = await response.text();
