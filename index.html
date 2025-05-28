@@ -141,12 +141,12 @@
             </div>
 
             <div id="tab-extractor" class="tab-content content-box hidden">
-                <h2 class="text-xl font-semibold text-gray-700 mb-4">HTML Source Extractor</h2>
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">HTML 1Source Extractor</h2>
                 <p class="text-sm text-gray-600 mb-3">
                     Enter a URL to fetch its HTML source code.
                 </p>
                 <p class="text-xs text-yellow-600 bg-yellow-50 p-2 rounded-md mb-4">
-                    <strong>Note:</strong> Due to browser security restrictions (CORS), this tool may not be able to fetch HTML from all websites directly. If a direct fetch fails, it will attempt to use a public proxy (allorigins.win, using its /raw endpoint). Proxies can also have limitations (e.g., rate limits, downtime, or may not work for all sites).
+                    <strong>Note:</strong> Due to browser security restrictions (CORS), this tool may not be able to fetch HTML from all websites directly. If a direct fetch fails, it will attempt to use a public proxy (allorigins.win, using its /get endpoint which returns JSON). Proxies can also have limitations.
                 </p>
                 <div class="space-y-4">
                     <div>
@@ -274,7 +274,6 @@
                 const directResponse = await fetch(url, { mode: 'cors' });
                 directFetchStatusInfo = `Status: ${directResponse.status} (${directResponse.statusText || 'No status text'})`;
 
-
                 if (directResponse.ok) {
                     fetchedHtmlContent = await directResponse.text();
                     fetchSuccessful = true;
@@ -282,27 +281,38 @@
                 } else {
                     console.warn(`Direct fetch failed for ${url}. ${directFetchStatusInfo}. Attempting proxy.`);
                     
-                    // Attempt 2: Proxy fetch using /raw endpoint
-                    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-                    console.log(`Attempting proxy fetch via (raw): ${proxyUrl}`);
+                    // Attempt 2: Proxy fetch using /get endpoint (expects JSON)
+                    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+                    console.log(`Attempting proxy fetch via (get/JSON): ${proxyUrl}`);
                     
                     const proxyResponse = await fetch(proxyUrl);
 
                     if (proxyResponse.ok) {
-                        fetchedHtmlContent = await proxyResponse.text();
-                        fetchSuccessful = true;
-                        console.log('Proxy fetch (raw) successful.');
+                        try {
+                            const proxyData = await proxyResponse.json();
+                            if (proxyData && typeof proxyData.contents === 'string') {
+                                fetchedHtmlContent = proxyData.contents;
+                                fetchSuccessful = true;
+                                console.log('Proxy fetch (/get) successful, extracted from JSON contents.');
+                            } else {
+                                console.error(`Proxy fetch for ${url} returned JSON but 'contents' field is missing or not a string.`, proxyData);
+                                specificErrorMessage = `Proxy fetch (/get) succeeded but the response format was unexpected (missing 'contents' or not a string).`;
+                            }
+                        } catch (jsonError) {
+                             console.error(`Proxy fetch for ${url} returned non-JSON response. Status: ${proxyResponse.status}. Error:`, jsonError);
+                             const responseText = await proxyResponse.text(); // Get actual text for debugging
+                             specificErrorMessage = `Proxy fetch (/get) failed to parse JSON. Status: ${proxyResponse.status}. The proxy might have returned an error page or non-JSON data.\nProxy response snippet: ${responseText.substring(0, 200)}...`;
+                        }
                     } else {
-                        console.error(`Proxy fetch (raw) failed for ${url} with status ${proxyResponse.status} (${proxyResponse.statusText || 'No status text'}).`);
-                        specificErrorMessage = `Direct fetch failed (${directFetchStatusInfo}).\nProxy fetch (raw) also failed (Status: ${proxyResponse.status} - ${proxyResponse.statusText || 'N/A'}).\n\nThis could be due to CORS, network issues, or the target server blocking requests. The proxy itself might also be down, rate-limiting, or unable to fetch this specific URL.`;
+                        console.error(`Proxy fetch (/get) failed for ${url} with status ${proxyResponse.status} (${proxyResponse.statusText || 'No status text'}).`);
+                        specificErrorMessage = `Direct fetch failed (${directFetchStatusInfo}).\nProxy fetch (/get) also failed (Status: ${proxyResponse.status} - ${proxyResponse.statusText || 'N/A'}).\n\nThis could be due to CORS, network issues, or the target server blocking requests. The proxy itself might also be down or rate-limiting.`;
                     }
                 }
             } catch (error) {
                 console.error('An error occurred during fetch attempts:', error);
-                // Check if it's a TypeError and includes 'Failed to fetch', which is common for CORS/network errors
-                if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-                     specificErrorMessage = `Error fetching HTML: Load failed.\nThis often indicates a network problem (e.g., the URL is unreachable, your connection is down) or a Cross-Origin Resource Sharing (CORS) issue that prevents fetching from the script's origin, even with a proxy attempt.`;
-                     if(directFetchStatusInfo) { // If direct fetch was attempted and failed before this catch
+                if (error.name === 'TypeError' && error.message.toLowerCase().includes('failed to fetch')) {
+                     specificErrorMessage = `Error fetching HTML: Load failed.\nThis often indicates a network problem (e.g., the URL is unreachable, your connection is down) or a Cross-Origin Resource Sharing (CORS) issue that prevents fetching from the script's origin.`;
+                     if(directFetchStatusInfo && !directFetchStatusInfo.startsWith("Status: 200")) { 
                         specificErrorMessage += `\n(Direct fetch attempt resulted in: ${directFetchStatusInfo})`;
                      }
                 } else {
@@ -329,11 +339,11 @@
             }
             const tempTextArea = document.createElement('textarea');
             tempTextArea.value = htmlOutput.value;
-            tempTextArea.style.position = 'absolute'; // Prevent scrolling to bottom of page
+            tempTextArea.style.position = 'absolute'; 
             tempTextArea.style.left = '-9999px';
             document.body.appendChild(tempTextArea);
             tempTextArea.select();
-            tempTextArea.setSelectionRange(0, 99999); // For mobile devices
+            tempTextArea.setSelectionRange(0, 99999); 
 
             try {
                 const successful = document.execCommand('copy');
@@ -352,7 +362,6 @@
             document.body.removeChild(tempTextArea);
         });
 
-        // Add placeholder if Inter font is not available
         if (typeof document.fonts !== 'undefined' && typeof document.fonts.load === 'function') {
             document.fonts.load('1em Inter').catch(() => {
                 console.warn("Inter font not available or failed to load, using system default.");
